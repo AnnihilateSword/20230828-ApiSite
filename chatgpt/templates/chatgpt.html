@@ -1,0 +1,387 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChatGPT Streaming Example</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+
+    <!-- highlight -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/styles/default.min.css"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/styles/atom-one-dark.min.css">
+
+    <!-- 自定义 CSS -->
+    <link rel="stylesheet" href="{% static 'css/chatgpt.css' %}">
+</head>
+<body class="dark">
+
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">HaE 接口体验交流</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="">交流</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="">服务</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="">交流</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ChatGPT -->
+    <div class="d-flex justify-content-center align-items-center text-center center-div">
+        <div class="main-container container">
+            <div class="row align-items-center">
+                <!-- 左边工具栏 -->
+                <div class="col-3 left-sliderbar">
+                    &nbsp;&nbsp;
+                    <h3>ChatGPT Beta</h3>
+                    
+                    
+                    <!-- 单选框 -->
+                    <div class="btn-group-vertical" role="group" aria-label="Basic radio toggle button group">
+                        <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="btnradio1">ChatGPT-3.5-turbo</label>
+                      
+                        <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="btnradio2">DALL·E</label>
+                    </div>
+
+                    <!-- 绘图属性选择，默认隐藏，选择绘图单选才显示 -->
+                    <div class="image-size">
+                        <div class="image-size-div">
+                            图像大小：
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" disabled>
+                            <label class="form-check-label" for="flexRadioDefault1">
+                                256x256
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" disabled>
+                            <label class="form-check-label" for="flexRadioDefault1">
+                                512x512
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault3" checked disabled>
+                            <label class="form-check-label" for="flexRadioDefault2">
+                                1024x1024
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 设置生成图片数量 -->
+                    <div class="generate-image-num-set-div">
+                        <label for="customRange1" class="form-label generate-image-num" id="generate-image-num">生成图片数量：1</label>
+                        <!-- 调用方法关联起来，最后的 oninput -->
+                        <input type="range" class="form-range" min="1" max="5" step="1" value="1" id="customRange1" oninput="updateDivContent()" disabled>
+                    </div>
+
+                </div>
+                <div class="col-9 right">
+                    <!-- 展示区 -->
+                    <div class="showarea", id="showarea">
+
+                    </div>
+                    <!-- 输入区域 -->
+                    <div class="inputarea">
+                        <form action="" method="post">
+                            {% csrf_token %}
+                            <textarea name="question" id="question" rows="3" placeholder="请输入内容"></textarea>
+                            <button id="submitbtn" type="button" class="btn btn-info">发送</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    </div>
+    
+    
+    <!-- BootStrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <!-- highlight -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js"></script>
+    <!-- marked -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="text/javascript">
+        // 全局变量
+        // 暂时 1 是 gpt，2 是 dalle，默认是 1
+        var number = 1;
+        var generate_image_size = '1024x1024';
+        var generate_image_num = 1;
+
+        // 在页面加载完成后，将焦点设置在 textarea 上
+        window.onload = function() {
+            var textarea = document.getElementById("question");
+            if (textarea) {
+                textarea.focus();
+            }
+        }
+
+        // 选择
+        $('#btnradio1').click(function(){
+            number = 1;
+            console.log('聊天');
+
+            // 禁用选项
+            var checkbox = document.getElementById("flexRadioDefault1");
+            checkbox.disabled = !checkbox.disabled;
+            var checkbox2 = document.getElementById("flexRadioDefault2");
+            checkbox2.disabled = !checkbox2.disabled;
+            var checkbox3 = document.getElementById("flexRadioDefault3");
+            checkbox3.disabled = !checkbox3.disabled;
+            // 禁用数量选择
+            var customRange1 = document.getElementById("customRange1");
+            customRange1.disabled = !customRange1.disabled;
+        });
+
+        $('#btnradio2').click(function(){
+            number = 2;
+            console.log('绘画');
+
+            // 启用选项
+            var checkbox = document.getElementById("flexRadioDefault1");
+            checkbox.disabled = !checkbox.disabled;
+            var checkbox2 = document.getElementById("flexRadioDefault2");
+            checkbox2.disabled = !checkbox2.disabled;
+            var checkbox3 = document.getElementById("flexRadioDefault3");
+            checkbox3.disabled = !checkbox3.disabled;
+            // 启用数量选择
+            var customRange1 = document.getElementById("customRange1");
+            customRange1.disabled = !customRange1.disabled;
+        });
+
+        // 监听选项更改
+        var checkbox = document.getElementById("flexRadioDefault1");
+        checkbox.addEventListener('change', function(){
+            if (this.checked) {
+                generate_image_size = '256x256';
+                console.log('图片大小选择：' + generate_image_size);
+            }
+        });
+        var checkbox2 = document.getElementById("flexRadioDefault2");
+        checkbox2.addEventListener('change', function(){
+            if (this.checked) {
+                generate_image_size = '512x512';
+                console.log('图片大小选择：' + generate_image_size);
+            }
+        });
+        var checkbox3 = document.getElementById("flexRadioDefault3");
+        checkbox3.addEventListener('change', function(){
+            if (this.checked) {
+                generate_image_size = '1024x1024';
+                console.log('图片大小选择：' + generate_image_size);
+            }
+        });
+
+        // 监听输入框回车事件
+        var textarea = document.getElementById('question');
+        var button = document.getElementById('submitbtn');
+        textarea.addEventListener('keydown', function(event){
+            if (event.keyCode === 13) {
+                event.preventDefault();  // 阻止默认的回车行为
+                button.click();  // 模拟点击按钮
+            }
+        });
+        
+        // 更新生成图片数量输入
+        function updateDivContent() {
+            var rangeValue = document.getElementById('customRange1').value;
+            var label = document.getElementById('generate-image-num');
+            label.innerText = '生成图片数量：' + rangeValue;
+            // 更新全局变量
+            generate_image_num = rangeValue;
+            console.log('生成图片数量选择：' + generate_image_num);
+        }
+        
+
+
+        // 初始化 Highlight.js 并应用代码高亮
+        document.addEventListener("DOMContentLoaded", function(event) {
+            hljs.highlightAll();
+        });
+        
+        // 获取展示列表
+        const showarea = document.getElementById('showarea');
+
+        $(function(){
+            $('#submitbtn').click(function(){  // 【点击按钮时】
+                // 1. 发送模块 -----------------------------
+                // 获取发送内容，并保存下来
+                // document.getElementById("id") 与 $("#id") 的区别
+                const question_str = $('#question').val();
+                // 清空发送栏
+                $('#question').val('');
+                // 输出发送的消息
+                var title_user = document.createElement('h3');
+                title_user.textContent = ':User';
+                var message_user = document.createElement('div');
+                message_user.className = 'message-user';
+                var result_user = document.createElement('div');
+                result_user.id = 'result'  // 设置id
+                result_user.className = 'result'  // 设置class
+                showarea.appendChild(message_user);  // 消息加入根节点
+                message_user.appendChild(title_user);
+                message_user.appendChild(result_user);
+                result_user.innerText += question_str;  // 设置文本
+                // ---------------------------------------
+
+                // 2. 回复模块
+                if (number == 1) {
+                    var source = new EventSource('/chatgpt/generate_stream?question=' + question_str);
+                }
+                // 准备工作
+                var title = document.createElement('h3');
+                title.textContent = 'GPT:';
+                var message = document.createElement('div');
+                message.className = 'message';
+                var result = document.createElement('div');
+                result.id = 'result'  // 设置id
+                result.className = 'result'  // 设置class
+                showarea.appendChild(message);  // 消息加入根节点
+                message.appendChild(title);
+                message.appendChild(result);
+                var preElement = document.createElement('pre');
+                var codeElement = document.createElement('code');
+                var start_code = false;
+                var end_code = false;
+                var checked_language = false;
+                
+                // 图像
+                if (number == 2) {
+
+                    result.innerText = '正在加载，马上就好...';
+                    // 增加内容时自动滚动到最底部
+                    showarea.scrollTop = showarea.scrollHeight;
+                    
+                    $.ajax({
+                        url: '/chatgpt/generate_image?question=' + question_str + '&generate_image_size=' + generate_image_size + '&generate_image_num=' + generate_image_num,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(textData) {
+                            // 在这里处理接收到的文本数据
+                            console.log(textData);  // 输出接收到的文本到控制台
+                            console.log(textData.length);  // 输出接收到的文本到控制台
+                            for(var i = 0; i < textData.length; i++) {
+
+                                var img = document.createElement('img');
+                                message.appendChild(img);
+                                // DallE绘画接口
+                                // 获取内容
+                                result.innerText = '加载完毕！';
+                                img.src = textData[i];
+                            }
+
+                            // 增加内容时自动滚动到最底部
+                            var timer_id = setInterval(function(){
+                                showarea.scrollTop = showarea.scrollHeight;
+                                clearInterval(timer_id)
+                            }, 2000);
+                        },
+                        // 错误处理
+                        error: function(xhr) {
+                            console.log('错误：' + xhr);
+                            alert('错误：' + xhr);
+                        }
+                    });
+                }
+
+                // 聊天
+                if (number == 1) {
+
+                    source.onmessage = function(event) {  // 【发送按钮按下】
+                        if (event.data == '[DONE]') {
+                            source.close();
+                        } else {
+                            // 获取内容
+                            var chunk = event.data;
+    
+                            if (end_code) {  // 结束书写代码，更新状态码
+                                start_code = false;
+                                end_code = false;
+                                if (chunk.includes('`')) {  // 结束符也有两种情况，需要排除
+                                    return;
+                                }
+                            }
+    
+                            // 检测到代码块开头
+                            if (!start_code) {  // 如果没有开始，就进行判断
+                                if (chunk.includes('``')) {
+                                    start_code = true;  // 更新标志
+                                    console.log('开始写代码');
+                                    // 加入标签
+                                    result.appendChild(preElement);
+                                    preElement.appendChild(codeElement);
+                                    return;
+                                }
+                                // 没写代码就直接插入根节点下
+                                result.innerHTML += chunk;
+                            } else {  // 开始书写代码块部分
+                                if (!checked_language) {  // 检测语言
+                                    // 有可能开始标志检测传入的只是 ``，那里有两种情况：``` 和 ``
+                                    if (chunk.includes('`')){
+                                        return;
+                                    }
+                                    checked_language = true;
+                                    var kind = 'hljs language-' + chunk;
+                                    codeElement.className = kind;  // 类名
+                                    console.log('语言类型：' + codeElement.className);
+                                    return;
+                                }
+    
+                                if (chunk.includes('``')) {
+                                    end_code = true;  // 更新标志，到达结束符
+                                    console.log('结束写代码');
+                                    return;
+                                }
+    
+                                // 换行符问题
+                                if (chunk.includes('<br/>')) {
+                                    chunk = chunk.replace('<br/>', '\n');
+                                }
+                                codeElement.innerHTML += chunk;
+    
+                                // 代码高亮
+                                const codeBlocks = document.querySelectorAll('#result code');
+                                codeBlocks.forEach((block) => {
+                                    hljs.highlightElement(block);
+                                });
+                            }
+                            
+                            // 增加内容时自动滚动到最底部
+                            showarea.scrollTop = showarea.scrollHeight;
+                        }
+                    }
+
+                    // 错误处理
+                    source.onerror = function(error) {
+                        console.log('错误：' + event.data);
+                        alert('错误：' + event.data);
+                    }
+
+                }
+            })
+        })
+    </script>
+</body>
+</html>

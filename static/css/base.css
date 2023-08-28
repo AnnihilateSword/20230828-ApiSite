@@ -1,0 +1,15 @@
+body {
+    background-color: #1E1E1E;
+    /* Dark background color */
+    color: #ffffff;
+    /* Text color for better readability on dark background */
+
+    text-align: center;
+}
+
+.navbar {
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent dark navbar */
+    position: absolute;
+    width: 100%;
+}

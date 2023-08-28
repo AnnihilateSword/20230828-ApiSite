@@ -1,0 +1,9 @@
+.highlight-link {
+    background-color: #FF9900;
+    border-color: #FF9900;
+}
+
+.highlight-link:hover {
+    background-color: #E68A00;
+    border-color: #E68A00;
+}

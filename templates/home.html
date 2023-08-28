@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+<!-- css -->
+{% block css_style %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+<!-- 页面内容 -->
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <!-- 链接 -->
+    <div class="container mt-4">
+        <div class="jumbotron text-center">
+            <h1>Welcome to Our Awesome Website</h1>
+            <p>This is a simple interface to experience the website.</p>
+            <!-- <a class="btn btn-lg btn-primary highlight-link" href="another-page.html">Learn More</a> -->
+            <a class="btn btn-lg btn-primary highlight-link" href="{% url 'chatgpt' %}">Go to ChatGPT</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
